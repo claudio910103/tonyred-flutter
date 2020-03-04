@@ -20,7 +20,7 @@ class _MapaPageState extends State<MapaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Clientes'),
+        title: Text('Mapa'),
       ),
       drawer: MenuDraweWidget(),
       body: SafeArea(
