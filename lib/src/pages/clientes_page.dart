@@ -1,28 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tonyredapp/src/bloc/clientes_bloc.dart';
+import 'package:tonyredapp/src/bloc/provider.dart';
+import 'package:tonyredapp/src/models/cliente_model.dart';
+
 
 import 'package:tonyredapp/src/widgets/menu_drawer.dart';
 
-class ClientesPage extends StatefulWidget {
-  ClientesPage({Key key}) : super(key: key);
 
-  @override
-  _ClientesPageState createState() => _ClientesPageState();
-}
+class ClientesPage extends StatelessWidget {
 
-class _ClientesPageState extends State<ClientesPage> {
-  Stream<QuerySnapshot> _queryStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _queryStream = Firestore.instance
-            .collection('clientes')
-            .snapshots();
-  }
-  
   @override
   Widget build(BuildContext context) {
+    final clientesBloc = Provider.clientesBloc(context);
+    clientesBloc.cargarClientes();
 
     return Scaffold(
       appBar: AppBar(
@@ -38,32 +28,23 @@ class _ClientesPageState extends State<ClientesPage> {
       ),
       drawer: MenuDraweWidget(),
       body: SafeArea(
-        child: _listaClientes(),
-      //  child: Stack(
-      //    children: <Widget>[
-      //      Container(
-      //        color: Colors.white,
-      //        width: double.infinity,
-      //        height: size.height,
-      //      ),
-            
-      //    ],
-      //  ),
+        child: _listaClientes(clientesBloc),
       ),
     );
   }
 
-  Widget _listaClientes() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _queryStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> data) {
-        if (data.hasData){
-          final lista = data.data.documents;
+  Widget _listaClientes(ClientesBloc clientesBloc) {
+    return StreamBuilder(
+      stream: clientesBloc.clienteStream,
+      builder: (BuildContext context, AsyncSnapshot<List<ClienteModel>> snapshot) {
 
-          return new ListView.builder(
+        if (snapshot.hasData){
+          final clientesLista = snapshot.data;
+
+          return ListView.builder(
             padding: EdgeInsets.zero,
-            itemCount: lista.length,
-            itemBuilder: (context, i ) => _itemClienteCard(data.data.documents[i], data.data.documents[i].documentID),
+            itemCount: clientesLista.length,
+            itemBuilder: (context, i ) => _itemClienteCard(context, clientesBloc, clientesLista[i] ),
           );
         }
           
@@ -76,7 +57,7 @@ class _ClientesPageState extends State<ClientesPage> {
 
   }
 
-  Widget _itemClienteCard(DocumentSnapshot document, String firebaseID) {
+  Widget _itemClienteCard(BuildContext context, ClientesBloc clienteBloc, ClienteModel document) {
 
     return new Container(
       height: 50,
@@ -104,7 +85,7 @@ class _ClientesPageState extends State<ClientesPage> {
             top: 6.0,
             left: 36.0,
             right: 38.0,
-            child: Text(document['nombre'],
+            child: Text(document.nombre,
               style: TextStyle(fontSize: 16.0, color: Colors.black87, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)
           ),
           Positioned(
@@ -116,7 +97,7 @@ class _ClientesPageState extends State<ClientesPage> {
             top: 24.0,
             left: 36.0,
             right: 38.0,
-            child: Text(document['telefono'],
+            child: Text(document.telefono,
               style: TextStyle(fontSize: 14.0, color: Colors.black54, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)
           ),
         ],
