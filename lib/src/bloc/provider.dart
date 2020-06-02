@@ -7,7 +7,7 @@ export 'package:tonyredapp/src/bloc/clientes_bloc.dart';
 class Provider extends InheritedWidget {
 
   // final loginBloc      = new LoginBloc();
-  final _productosBloc = new ClientesBloc();
+  final _clientesBloc = new ClientesBloc();
 
 
   static Provider _instancia;
@@ -32,8 +32,8 @@ class Provider extends InheritedWidget {
   //   return ( context.inheritFromWidgetOfExactType(Provider) as Provider ).loginBloc;
   // }
 
-  static ClientesBloc clientesBloc ( BuildContext context ) {
-    return ( context.inheritFromWidgetOfExactType(Provider) as Provider )._productosBloc;
+  static ClientesBloc of ( BuildContext context ){
+    return context.dependOnInheritedWidgetOfExactType<Provider>()._clientesBloc;
   }
 
 }

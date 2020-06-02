@@ -10,10 +10,17 @@ class ClientesBloc {
   final _clientesProvider = new ClientesProvider();
 
   Stream<List<ClienteModel>> get clienteStream => _clientesController.stream;
+  Stream<bool> get cargando => _cargandoClientesController.stream;
 
   void cargarClientes() async {
     final clientes = await _clientesProvider.cargarClientes();
     _clientesController.sink.add(clientes);
+  }
+
+  void agregarCliente(ClienteModel clienteModel) async {
+    _cargandoClientesController.sink.add(true);
+    await _clientesProvider.crearCliente(clienteModel);
+    _cargandoClientesController.sink.add(false);
   }
   
   dispose() {

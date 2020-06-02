@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+
 import 'package:tonyredapp/src/bloc/provider.dart';
 import 'package:tonyredapp/src/models/cliente_model.dart';
  
@@ -18,9 +22,31 @@ class _ClienteModalState extends State<ClienteModalPage> {
   ClienteModel cliente = new ClienteModel();
   bool _guardando = false;
 
+  Position _position;
+  StreamSubscription<Position> _positionStream;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    var locationOptions = LocationOptions(accuracy: LocationAccuracy.high, distanceFilter: 10);
+    _positionStream = Geolocator().getPositionStream(locationOptions).listen((Position position) {
+      setState(() {
+        _position = position;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    _positionStream.cancel();
+  }
+
   @override
   Widget build(BuildContext context) {
-    clientesBloc = Provider.clientesBloc(context);
+    clientesBloc = Provider.of(context);
 
 
     return Scaffold(
@@ -203,6 +229,7 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _inputLatitud() {
     final size = MediaQuery.of(context).size;
+    cliente.latitud = _position.latitude.toString();
     
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
@@ -211,6 +238,9 @@ class _ClienteModalState extends State<ClienteModalPage> {
       child: TextFormField(
         initialValue: cliente.latitud,
         keyboardType: TextInputType.text,
+        focusNode: FocusNode(),
+        enableInteractiveSelection: false,
+        enabled: false,
         decoration: InputDecoration(
           prefixIcon: Icon( Icons.place, color: Colors.black38),
           hintStyle: TextStyle(color: Color.fromRGBO(30, 100, 247, 1.0)),
@@ -232,12 +262,17 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _inputLongitud() {
     final size = MediaQuery.of(context).size;
+    cliente.longitud = _position.longitude.toString();
+
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
       padding: EdgeInsets.only(right: 12.0),
       width: size.width * 0.47,
       child: TextFormField(
         initialValue: cliente.longitud,
+        focusNode: FocusNode(),
+        enableInteractiveSelection: false,
+        enabled: false,
         keyboardType: TextInputType.text,
         decoration: InputDecoration(
           prefixIcon: Icon( Icons.place, color: Colors.black38),
@@ -375,7 +410,15 @@ class _ClienteModalState extends State<ClienteModalPage> {
     
     setState(() { _guardando = true; });
 
+    if(cliente.id == null) {
+      print('creado');
+      clientesBloc.agregarCliente(cliente);
+    }else{
+      print('modificado');
+    }
+
     mostrarSnackbar('Cliente Guardado');
+    clientesBloc.cargarClientes();
     Navigator.pop(context); 
   }
 

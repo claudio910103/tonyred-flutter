@@ -7,11 +7,18 @@ import 'package:tonyredapp/src/models/cliente_model.dart';
 import 'package:tonyredapp/src/widgets/menu_drawer.dart';
 
 
-class ClientesPage extends StatelessWidget {
+class ClientesPage extends StatefulWidget {
+
+  @override
+  _ClientesPageState createState() => _ClientesPageState();
+}
+
+class _ClientesPageState extends State<ClientesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final clientesBloc = Provider.clientesBloc(context);
+
+    final clientesBloc = Provider.of(context);
     clientesBloc.cargarClientes();
 
     return Scaffold(
@@ -104,5 +111,4 @@ class ClientesPage extends StatelessWidget {
       ),
     );
   }
-
 }
