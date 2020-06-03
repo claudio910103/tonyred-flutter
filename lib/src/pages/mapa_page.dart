@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong/latlong.dart';
@@ -16,6 +17,8 @@ class _MapaPageState extends State<MapaPage> {
   LatLng _ubicacionInicial = new LatLng(16.5588581, -95.1009607);
   double _zoomInicial = 15.0;
   String tipoMapa = "dark"; // streets, dark, light, outdoors, satellite
+  List<Marker> allMarkers = [];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,26 +117,73 @@ class _MapaPageState extends State<MapaPage> {
   Widget _mapaMapbox(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Container(
-      width: size.width,
-      height: size.height,
-      child: FlutterMap(
-        mapController: _map,
-        options: MapOptions(
-          center: _ubicacionInicial,
-          zoom: _zoomInicial
-        ),
-        layers: [
-          _crearMapa(),
-          _ubicacionActualMarker(),
-          _creaMarcadores()  
-        ],  
-      ),
+    return StreamBuilder(
+      stream: Firestore.instance.collection('clientes').snapshots(),
+      builder: (context, snapshot) {
+        if(!snapshot.hasData){
+          return Text('Cargando mapa');
+        } else {
+          allMarkers.clear();
+          for (int i = 0; i < snapshot.data.documents.length; i++) {
+            final String nombre = snapshot.data.documents[i]['nombre'];
+            final double latitud = double.parse(snapshot.data.documents[i]['latitud']);
+            final double longitud = double.parse(snapshot.data.documents[i]['longitud']);
+
+              allMarkers.add(new Marker(
+                  width: 250.0,
+                  height: 90.0,
+                  point: new LatLng(latitud,longitud),
+                  builder: (ctx) =>
+                  Column(
+                    children: <Widget>[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10.0),
+                        child: Container(
+                          color: Color.fromRGBO(40, 40, 40, 0.7),
+                          padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                          child: Text(nombre,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700
+                            ),
+                            overflow: TextOverflow.ellipsis
+                          )
+                        )
+                      ),
+                      SizedBox(height: 5.0),
+                      Container(
+                        child: Image.asset('assets/img/antena-on.png', width: 40)
+                      ),
+                    ]
+                  ),
+              ),
+            );
+          }
+          return Container(
+              width: size.width,
+              height: size.height,
+              child: FlutterMap(
+                mapController: _map,
+                options: MapOptions(
+                  center: _ubicacionInicial,
+                  zoom: _zoomInicial
+                ),
+                layers: [
+                  _tileLayerOptions(),
+                  _ubicacionActualMarker(),
+                  new MarkerLayerOptions(markers: allMarkers)
+                  // _creaMarcadores()  
+                ],  
+              ),
+          );
+        }
+      }, 
     );
 
   }
 
-  _crearMapa() {
+  _tileLayerOptions() {
 
     return TileLayerOptions(
       urlTemplate: 'https://api.mapbox.com/v4/'
@@ -146,7 +196,7 @@ class _MapaPageState extends State<MapaPage> {
     );
   }
 
-  _ubicacionActualMarker(){
+  MarkerLayerOptions _ubicacionActualMarker(){
     return new MarkerLayerOptions(
           markers: [
             new Marker(
@@ -166,41 +216,41 @@ class _MapaPageState extends State<MapaPage> {
     );
   }
 
-  _creaMarcadores(){
-    return new MarkerLayerOptions(
-          markers: [
-            new Marker(
-              width: 250.0,
-              height: 90.0,
-              point: new LatLng(16.5602482,-95.0992879),
-              builder: (ctx) =>
-              Column(
-                children: <Widget>[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10.0),
-                    child: Container(
-                      color: Color.fromRGBO(40, 40, 40, 0.7),
-                      padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                      child: Text('Salon Zandunga',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700
-                        ),
-                        overflow: TextOverflow.ellipsis
-                      )
-                    )
-                  ),
-                  SizedBox(height: 5.0),
-                  Container(
-                    child: Image.asset('assets/img/antena-on.png', width: 40)
-                  ),
-                ]
-              ),
-            ),
-          ],
-    );
-  }
+  // _creaMarcadores(){
+  //   return new MarkerLayerOptions(
+  //         markers: [
+  //           new Marker(
+  //             width: 250.0,
+  //             height: 90.0,
+  //             point: new LatLng(16.5602482,-95.0992879),
+  //             builder: (ctx) =>
+  //             Column(
+  //               children: <Widget>[
+  //                 ClipRRect(
+  //                   borderRadius: BorderRadius.circular(10.0),
+  //                   child: Container(
+  //                     color: Color.fromRGBO(40, 40, 40, 0.7),
+  //                     padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+  //                     child: Text('Salon Zandunga',
+  //                       style: TextStyle(
+  //                         fontSize: 14,
+  //                         color: Colors.white,
+  //                         fontWeight: FontWeight.w700
+  //                       ),
+  //                       overflow: TextOverflow.ellipsis
+  //                     )
+  //                   )
+  //                 ),
+  //                 SizedBox(height: 5.0),
+  //                 Container(
+  //                   child: Image.asset('assets/img/antena-on.png', width: 40)
+  //                 ),
+  //               ]
+  //             ),
+  //           ),
+  //         ],
+  //   );
+  // }
 
   Future<void> _updateZoomMap(LatLng centro, double newZoom) async {
     _map.move(centro, newZoom);

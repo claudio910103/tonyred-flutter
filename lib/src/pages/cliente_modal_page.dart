@@ -1,10 +1,10 @@
 import 'dart:async';
-
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:tonyredapp/src/bloc/provider.dart';
 import 'package:tonyredapp/src/models/cliente_model.dart';
+import 'package:tonyredapp/src/services/db.dart';
  
 class ClienteModalPage extends StatefulWidget {
   ClienteModalPage({Key key}) : super(key: key);
@@ -17,37 +17,35 @@ class _ClienteModalState extends State<ClienteModalPage> {
   String dropdownValue = '1 Mes';
   final formKey = GlobalKey<FormState>(); // Para validar formularios
   final scaffoldKey = GlobalKey<ScaffoldState>(); // Para mostrar el snackbar
+  final db = DatabaseService();
 
-  ClientesBloc clientesBloc;
   ClienteModel cliente = new ClienteModel();
   bool _guardando = false;
 
-  Position _position;
+  Position _currentPosition;
+
   StreamSubscription<Position> _positionStream;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     var locationOptions = LocationOptions(accuracy: LocationAccuracy.high, distanceFilter: 10);
-    _positionStream = Geolocator().getPositionStream(locationOptions).listen((Position position) {
+    _positionStream =  Geolocator().getPositionStream(locationOptions).listen((Position position) {
       setState(() {
-        _position = position;
+        _currentPosition =  position;
       });
     });
+
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     _positionStream.cancel();
   }
 
   @override
   Widget build(BuildContext context) {
-    clientesBloc = Provider.of(context);
-
 
     return Scaffold(
       key: scaffoldKey,
@@ -55,11 +53,17 @@ class _ClienteModalState extends State<ClienteModalPage> {
         title: Text('Registrar Cliente'),
         actions: <Widget>[
           IconButton(
+              icon: Icon(Icons.place),
+              onPressed: () {
+                 _getCurrentLocation();
+              },
+          ),
+          IconButton(
               icon: Icon(Icons.cancel),
               onPressed: () {
                  Navigator.pop(context);
               },
-            ),
+          ),
         ],
       ),
        body: SafeArea(
@@ -80,7 +84,6 @@ class _ClienteModalState extends State<ClienteModalPage> {
                 _inputTelCliente(),
                 _inputModAntena(),
                 _inputDireccionIP(),
-                _tituloSeccion('Coordenadas:'),
                 _seccionUbicacion(),
                 _tituloSeccion('Mensualidad:'),
                 _selectMensualidad(),
@@ -220,6 +223,7 @@ class _ClienteModalState extends State<ClienteModalPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
+          
           _inputLatitud(),
           _inputLongitud()
         ],
@@ -229,7 +233,8 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _inputLatitud() {
     final size = MediaQuery.of(context).size;
-    cliente.latitud = _position.latitude.toString();
+
+    cliente.latitud = _currentPosition.latitude.toString();
     
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
@@ -262,7 +267,8 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _inputLongitud() {
     final size = MediaQuery.of(context).size;
-    cliente.longitud = _position.longitude.toString();
+
+    cliente.longitud = _currentPosition.longitude.toString();
 
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
@@ -404,6 +410,23 @@ class _ClienteModalState extends State<ClienteModalPage> {
     );
   }
 
+  _getCurrentLocation() async{
+    final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
+
+    geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+        .then((Position ubicacion) {
+          setState(() {
+            _currentPosition = ubicacion;
+            cliente.latitud = ubicacion.latitude.toString();
+            cliente.longitud = ubicacion.longitude.toString();
+            mostrarSnackbar('Ubicacion agregada');
+          });
+        }).catchError((e) {
+          mostrarSnackbar('No se pudo obtener la ubicacion!');
+          print(e);
+        });
+  }
+
   void _submit() async {
     if ( !formKey.currentState.validate() ) return;
     formKey.currentState.save();
@@ -412,13 +435,15 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
     if(cliente.id == null) {
       print('creado');
-      clientesBloc.agregarCliente(cliente);
+      print(cliente.latitud);
+      print(cliente.longitud);
+      db.crearCliente(cliente);
     }else{
       print('modificado');
     }
 
     mostrarSnackbar('Cliente Guardado');
-    clientesBloc.cargarClientes();
+    // clientesBloc.cargarClientes();
     Navigator.pop(context); 
   }
 

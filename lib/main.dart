@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tonyredapp/src/bloc/provider.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:tonyredapp/src/pages/cliente_modal_page.dart';
 import 'package:tonyredapp/src/pages/clientes_page.dart';
@@ -13,16 +14,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return Provider(
+    return MultiProvider(
+          providers: [
+            StreamProvider<FirebaseUser>.value(value: FirebaseAuth.instance.onAuthStateChanged)
+          ],
           child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Tony Red',
-          initialRoute: 'clientes',
+          initialRoute: 'mapa',
           routes: {
-            'login' : (BuildContext context) => LoginPage(),
-            'mapa' : (BuildContext context) => MapaPage(),
-            'clientes' : (BuildContext context) => ClientesPage(),
-            'cliente-modal' : (BuildContext context) => ClienteModalPage()
+            'login' : (context) => LoginPage(),
+            'mapa' : (context) => MapaPage(),
+            'clientes' : (context) => ClientesPage(),
+            'cliente-modal' : (context) => ClienteModalPage()
           },
           theme: ThemeData(
             primaryColor: Color.fromRGBO(30, 100, 247, 1.0)
