@@ -1,13 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tonyredapp/src/services/db.dart';
 
-class LoginPage
- extends StatelessWidget {
-  const LoginPage
-  ({Key key}) : super(key: key);
+class LoginPage extends StatefulWidget {
+  const LoginPage({Key key}) : super(key: key);
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final formKey = GlobalKey<FormState>();
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+  final _db = DatabaseService();
+
+  SharedPreferences prefs;
+
+  String correo = '';
+  String password = '';
+
+  @override
+  void initState(){
+    super.initState();
+    _validarUsuario();
+  }
+
+  void _validarUsuario() async {
+    var user = await _db.getCurrentUser();
+    if(user.email != null){
+      // print(user.email);
+      Navigator.pushReplacementNamed(context, 'mapa' );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: scaffoldKey,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
@@ -73,36 +102,39 @@ class LoginPage
     final size = MediaQuery.of(context).size;
 
     return SingleChildScrollView(
-      child: Column(
-        children: <Widget>[
-          SizedBox(height: size.height * 0.3, width: double.infinity),
-          Container(
-            width: size.width * 0.90,  
-            margin: EdgeInsets.symmetric(vertical: 40.0),
-            padding: EdgeInsets.all(10.0),
-            decoration: BoxDecoration(
-              // color: Colors.white,
-              color: Color.fromRGBO(255, 255, 255, 1.0),
-              borderRadius: BorderRadius.circular(20.0),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 3.0,
-                  offset: Offset(0.0, 2.0),
-                  spreadRadius: 2.0
-                )
-              ]
+      child: Form(
+        key: formKey,
+          child: Column(
+          children: <Widget>[
+            SizedBox(height: size.height * 0.3, width: double.infinity),
+            Container(
+              width: size.width * 0.90,  
+              margin: EdgeInsets.symmetric(vertical: 40.0),
+              padding: EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                // color: Colors.white,
+                color: Color.fromRGBO(255, 255, 255, 1.0),
+                borderRadius: BorderRadius.circular(20.0),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 3.0,
+                    offset: Offset(0.0, 2.0),
+                    spreadRadius: 2.0
+                  )
+                ]
+              ),
+              child: Column(
+                children: <Widget>[
+                  _inputEmail(),
+                  _inputPassword(),
+                  _botonSubmit()
+                ],
+              ),
             ),
-            child: Column(
-              children: <Widget>[
-                _inputEmail(),
-                _inputPassword(),
-                _botonSubmit()
-              ],
-            ),
-          ),
-          SizedBox(height: 100.0)
-        ],
+            SizedBox(height: 100.0)
+          ],
+        ),
       ),
     );
   }
@@ -111,8 +143,17 @@ class LoginPage
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
       padding: EdgeInsets.symmetric(horizontal: 12.0),
-      child: TextField(
+      child: TextFormField(
+        initialValue: correo,
         keyboardType: TextInputType.emailAddress,
+        onSaved: (value) => correo = value,
+        validator: (value) {
+          if ( value.length < 3 ) {
+            return 'Correo no válido!';
+          } else {
+            return null;
+          }
+        },
         decoration: InputDecoration(
           icon: Icon( Icons.mail_outline, color: Colors.black38),
           hintStyle: TextStyle(color: Colors.blueAccent),
@@ -129,8 +170,17 @@ class LoginPage
     return Container(
       margin: EdgeInsets.only(bottom: 16.0),
       padding: EdgeInsets.symmetric(horizontal: 12.0),
-      child: TextField(
+      child: TextFormField(
+        initialValue: password,
         obscureText: true,
+        onSaved: (value) => password = value,
+        validator: (value) {
+          if(value.length < 2){
+            return 'Contraseña no válida';
+          } else{
+            return null;
+          }
+        },
         decoration: InputDecoration(
           icon: Icon( Icons.lock_outline, color: Colors.black38),
           hintStyle: TextStyle(color: Colors.blueAccent),
@@ -155,8 +205,41 @@ class LoginPage
       elevation: 1.0,
       color: Color.fromRGBO(57, 106, 252, 1.0),
       textColor: Colors.white,
-      onPressed: () {}
+      onPressed: _login
     );
   } 
+
+  void _login() async{
+    if ( !formKey.currentState.validate() ) return;
+    formKey.currentState.save();
+    var result = await _db.loginFirebase(correo, password);
+    prefs = await SharedPreferences.getInstance();
+
+    if (result == true) {
+      prefs.setString('email', correo);
+      Navigator.pushReplacementNamed(context, 'mapa' );
+    }else{
+      _mostrarSnackbar('Error. Credenciales incorrectas', 'error');
+    }
+    
+  }
+
+  void _mostrarSnackbar(String mensaje, String tipo) {
+    if (tipo == 'success') {
+      final snackbar = SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.green,
+        duration: Duration(milliseconds: 2500),
+      );
+      scaffoldKey.currentState.showSnackBar(snackbar);
+    } else {
+      final snackbar = SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+        duration: Duration(milliseconds: 2500),
+      );
+      scaffoldKey.currentState.showSnackBar(snackbar);
+    }
+  }
 
 }
