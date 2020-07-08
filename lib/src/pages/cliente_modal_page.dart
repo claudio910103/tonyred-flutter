@@ -23,21 +23,24 @@ class _ClienteModalState extends State<ClienteModalPage> {
   ClienteModel cliente = new ClienteModel();
   PagosModel pagosModel = new PagosModel();
   bool _guardando = false;
-
-  Position _currentPosition;
-
+  Position _posicion;
   StreamSubscription<Position> _positionStream;
 
   @override
   void initState() {
     super.initState();
-    var locationOptions = LocationOptions(accuracy: LocationAccuracy.high, distanceFilter: 10);
-    _positionStream =  Geolocator().getPositionStream(locationOptions).listen((Position position) {
+
+    cliente.latitud = '0';
+    cliente.longitud = '0';
+    var locationOpt = LocationOptions(accuracy: LocationAccuracy.high, distanceFilter: 10);
+    _positionStream = Geolocator().getPositionStream(locationOpt).listen((Position newposition) {
       setState(() {
-        _currentPosition =  position;
+        _posicion = newposition;
+        cliente.latitud = _posicion?.latitude.toString() ?? '0';
+        cliente.longitud = _posicion?.longitude.toString() ?? '0';
+        print(cliente.latitud + ' ' + cliente.longitud);
       });
     });
-
   }
 
   @override
@@ -48,18 +51,17 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final ClienteModel clienteData = ModalRoute.of(context).settings.arguments;
+    if (clienteData != null) {
+      cliente.latitud = clienteData.latitud;
+      cliente.longitud = clienteData.longitud;
+    }
 
     return Scaffold(
       key: scaffoldKey,
       appBar: AppBar(
         title: Text('Registrar Cliente'),
         actions: <Widget>[
-          IconButton(
-              icon: Icon(Icons.place),
-              onPressed: () {
-                 _getCurrentLocation();
-              },
-          ),
           IconButton(
               icon: Icon(Icons.cancel),
               onPressed: () {
@@ -86,7 +88,8 @@ class _ClienteModalState extends State<ClienteModalPage> {
                 _inputTelCliente(),
                 _inputModAntena(),
                 _inputDireccionIP(),
-                _seccionUbicacion(),
+                _tituloSeccion('Coordenandas:'),
+                _inputCoordenadas(),
                 _tituloSeccion('Día de pago y mensualidad:'),
                 _selectMensualidad(),
                 _tituloSeccion('Fotografia Fachada:'),
@@ -103,12 +106,12 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _tituloSeccion(String texto) {
     return Container(
-      height: 40.0,
+      height: 30.0,
       width: double.infinity,
       padding: EdgeInsets.only(left: 16.0, top: 16.0),
       child: Text(
         texto.toUpperCase(),
-        style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w700, color: Colors.black54)
+        style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: Colors.black54)
       ),
     );
   }
@@ -219,87 +222,18 @@ class _ClienteModalState extends State<ClienteModalPage> {
   }
 
 
-  Widget _seccionUbicacion() {
-    return SizedBox(
-      height: 70.0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          
-          _inputLatitud(),
-          _inputLongitud()
-        ],
-      ),
-    );
-  }
-
-  Widget _inputLatitud() {
+  Widget _inputCoordenadas() {
     final size = MediaQuery.of(context).size;
-    print(_currentPosition);
-    cliente.latitud = _currentPosition.latitude.toString();
-    
+
+        
     return Container(
       margin: EdgeInsets.only(bottom: 8.0),
       padding: EdgeInsets.only(left: 12.0),
       width: size.width * 0.47,
-      child: TextFormField(
-        initialValue: cliente.latitud,
-        keyboardType: TextInputType.text,
-        focusNode: FocusNode(),
-        enableInteractiveSelection: false,
-        enabled: false,
-        decoration: InputDecoration(
-          prefixIcon: Icon( Icons.place, color: Colors.black38),
-          hintStyle: TextStyle(color: Color.fromRGBO(30, 100, 247, 1.0)),
-          labelStyle: TextStyle(color: Colors.black38),  
-          labelText: 'Latitud',
-          hintText: 'Escriba la latitud...',
-        ),
-        onSaved: (value) => cliente.latitud = value,
-        validator: (value) {
-          if ( value.length < 3 ) {
-            return 'Ingrese la latitud';
-          } else {
-            return null;
-          }
-        },
-      )
+      child: Text(cliente.latitud + ',' + cliente.longitud)
     );
   }
 
-  Widget _inputLongitud() {
-    final size = MediaQuery.of(context).size;
-
-    cliente.longitud = _currentPosition.longitude.toString();
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.0),
-      padding: EdgeInsets.only(right: 12.0),
-      width: size.width * 0.47,
-      child: TextFormField(
-        initialValue: cliente.longitud,
-        focusNode: FocusNode(),
-        enableInteractiveSelection: false,
-        enabled: false,
-        keyboardType: TextInputType.text,
-        decoration: InputDecoration(
-          prefixIcon: Icon( Icons.place, color: Colors.black38),
-          hintStyle: TextStyle(color: Color.fromRGBO(30, 100, 247, 1.0)),
-          labelStyle: TextStyle(color: Colors.black38),  
-          labelText: 'Longitud',
-          hintText: 'Escriba la longitud...',
-        ),
-        onSaved: (value) => cliente.longitud = value,
-        validator: (value) {
-          if ( value.length < 3 ) {
-            return 'Ingrese la longitud';
-          } else {
-            return null;
-          }
-        },
-      )
-    );
-  }
 
   Widget _selectMensualidad() {
     final size = MediaQuery.of(context).size;
@@ -412,22 +346,12 @@ class _ClienteModalState extends State<ClienteModalPage> {
     );
   }
 
-  _getCurrentLocation() async{
-    final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
-
-    geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
-        .then((Position ubicacion) {
-          setState(() {
-            _currentPosition = ubicacion;
-            cliente.latitud = ubicacion.latitude.toString();
-            cliente.longitud = ubicacion.longitude.toString();
-            _mostrarSnackbar('Ubicacion agregada');
-          });
-        }).catchError((e) {
-          _mostrarSnackbar('No se pudo obtener la ubicacion!');
-          print(e);
-        });
-  }
+  // _getCurrentLocation(){
+  //   setState(() {
+  //     cliente.latitud = _posicion.latitude.toString();
+  //     cliente.longitud = _posicion.longitude.toString();
+  //   });
+  // }
 
   void _submit() async {
     if ( !formKey.currentState.validate() ) return;
@@ -442,13 +366,13 @@ class _ClienteModalState extends State<ClienteModalPage> {
       cliente.month = new DateTime.now().month;
       var clienteFirebaseID = await db.crearCliente(cliente);
       cliente.id = clienteFirebaseID;
-      print(clienteFirebaseID);
+      // print(clienteFirebaseID);
     }else{
       print('modificado');
     }
 
     _mostrarSnackbar('Cliente Guardado');
-    // clientesBloc.cargarClientes();
+
     Navigator.pop(context); 
   }
 
