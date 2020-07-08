@@ -10,7 +10,10 @@ class ClienteModel {
   String latitud;
   String longitud;
   String direccionIP;
+  String diaPago;
   int costoMensualidad;
+  int year;
+  int month;
 
     ClienteModel({
         this.id,
@@ -21,7 +24,10 @@ class ClienteModel {
         this.latitud = '',
         this.longitud = '',
         this.direccionIP = '',
+        this.diaPago = '',
         this.costoMensualidad = 0,
+        this.year,
+        this.month,
     });
 
     factory ClienteModel.fromFirestore(DocumentSnapshot doc) {
@@ -36,7 +42,10 @@ class ClienteModel {
         latitud: data['latitud'] ?? '',
         longitud: data['longitud'] ?? '',
         direccionIP: data['direccionIP'] ?? '',
+        diaPago: data['diaPago'] ?? '',
         costoMensualidad: data['costoMensualidad'] ?? 0,
+        year: data['year'] ?? 0,
+        month: data['month'] ?? 0,
       );
 
     }

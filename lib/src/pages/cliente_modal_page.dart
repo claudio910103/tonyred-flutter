@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:tonyredapp/src/models/cliente_model.dart';
+import 'package:tonyredapp/src/models/pagos_model.dart';
 import 'package:tonyredapp/src/services/db.dart';
  
 class ClienteModalPage extends StatefulWidget {
@@ -14,12 +15,13 @@ class ClienteModalPage extends StatefulWidget {
 }
 
 class _ClienteModalState extends State<ClienteModalPage> {
-  String dropdownValue = '1 Mes';
+  String dropdownValue = '1';
   final formKey = GlobalKey<FormState>(); // Para validar formularios
   final scaffoldKey = GlobalKey<ScaffoldState>(); // Para mostrar el snackbar
   final db = DatabaseService();
 
   ClienteModel cliente = new ClienteModel();
+  PagosModel pagosModel = new PagosModel();
   bool _guardando = false;
 
   Position _currentPosition;
@@ -85,7 +87,7 @@ class _ClienteModalState extends State<ClienteModalPage> {
                 _inputModAntena(),
                 _inputDireccionIP(),
                 _seccionUbicacion(),
-                _tituloSeccion('Mensualidad:'),
+                _tituloSeccion('Día de pago y mensualidad:'),
                 _selectMensualidad(),
                 _tituloSeccion('Fotografia Fachada:'),
                 _botonFotografia(),
@@ -233,7 +235,7 @@ class _ClienteModalState extends State<ClienteModalPage> {
 
   Widget _inputLatitud() {
     final size = MediaQuery.of(context).size;
-
+    print(_currentPosition);
     cliente.latitud = _currentPosition.latitude.toString();
     
     return Container(
@@ -308,44 +310,44 @@ class _ClienteModalState extends State<ClienteModalPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
 
-            // Container(
-            //   padding: EdgeInsets.only(left: 12.0),
-            //   width: size.width * 0.47,
-            //   height: 65,
-            //   child: DropdownButton<String>(
-            //     value: dropdownValue,
-            //     icon: Icon(Icons.arrow_drop_down),
-            //     iconSize: 24,
-            //     elevation: 16,
-            //     style: TextStyle(
-            //       color: Colors.black,
-            //       fontSize: 16,
-            //     ),
-            //     underline: Container(
-            //       height: 1,
-            //       color: Colors.black38,
-            //     ),
-            //     isExpanded: true,
-            //     onChanged: (String newValue) {
-            //       setState(() {
-            //         dropdownValue = newValue;
-            //       });
-            //     },
-            //     items: <String>['1 Mes', '2 Meses', '3 Meses', '4 Meses']
-            //       .map<DropdownMenuItem<String>>((String value) {
-            //         return DropdownMenuItem<String>(
-            //           value: value,
-            //           child: Text(value),
-            //         );
-            //       })
-            //       .toList()
-            //   ),
-            // ),
+            Container(
+              padding: EdgeInsets.only(left: 12.0),
+              width: size.width * 0.47,
+              height: 65,
+              child: DropdownButton<String>(
+                value: dropdownValue,
+                icon: Icon(Icons.arrow_drop_down),
+                iconSize: 24,
+                elevation: 16,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                ),
+                underline: Container(
+                  height: 1,
+                  color: Colors.black38,
+                ),
+                isExpanded: true,
+                onChanged: (String newValue) {
+                  setState(() {
+                    dropdownValue = newValue;
+                  });
+                },
+                items: <String>['1', '16']
+                  .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                  .toList()
+              ),
+            ),
 
             Container(
               margin: EdgeInsets.only(bottom: 10.0),
               padding: EdgeInsets.only(right: 12.0),
-              width: size.width,
+              width: size.width * 0.47,
               child: TextFormField(
                 initialValue: cliente.costoMensualidad.toString(),
                 keyboardType: TextInputType.number,
@@ -419,10 +421,10 @@ class _ClienteModalState extends State<ClienteModalPage> {
             _currentPosition = ubicacion;
             cliente.latitud = ubicacion.latitude.toString();
             cliente.longitud = ubicacion.longitude.toString();
-            mostrarSnackbar('Ubicacion agregada');
+            _mostrarSnackbar('Ubicacion agregada');
           });
         }).catchError((e) {
-          mostrarSnackbar('No se pudo obtener la ubicacion!');
+          _mostrarSnackbar('No se pudo obtener la ubicacion!');
           print(e);
         });
   }
@@ -434,20 +436,23 @@ class _ClienteModalState extends State<ClienteModalPage> {
     setState(() { _guardando = true; });
 
     if(cliente.id == null) {
-      print('creado');
-      print(cliente.latitud);
-      print(cliente.longitud);
-      db.crearCliente(cliente);
+      print('Cliente creado');
+      cliente.diaPago = dropdownValue;
+      cliente.year = new DateTime.now().year;
+      cliente.month = new DateTime.now().month;
+      var clienteFirebaseID = await db.crearCliente(cliente);
+      cliente.id = clienteFirebaseID;
+      print(clienteFirebaseID);
     }else{
       print('modificado');
     }
 
-    mostrarSnackbar('Cliente Guardado');
+    _mostrarSnackbar('Cliente Guardado');
     // clientesBloc.cargarClientes();
     Navigator.pop(context); 
   }
 
-  void mostrarSnackbar(String mensaje) {
+  void _mostrarSnackbar(String mensaje) {
 
     final snackbar = SnackBar(
       content: Text( mensaje ),
