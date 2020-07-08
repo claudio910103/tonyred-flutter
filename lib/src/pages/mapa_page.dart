@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:animate_do/animate_do.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -20,7 +20,7 @@ class MapaPage extends StatefulWidget {
 class _MapaPageState extends State<MapaPage> {
   MapController _map = new MapController();
   LatLng _ubicacionInicial = new LatLng(16.5588581, -95.1009607);
-  double _zoomInicial = 14.0;
+  double _zoomInicial = 14.5;
   List<Marker> allMarkers = [];
   // final prefs = new PreferenciasService();
   SharedPreferences prefs;
@@ -136,10 +136,14 @@ class _MapaPageState extends State<MapaPage> {
           child: FloatingActionButton(
             heroTag: 'fa-btn-marker',
             elevation: 0.0,
-            child: Icon( Icons.person_pin, size: 30.0, color: Colors.lightBlue),
+            child: Icon( Icons.face, size: 30.0, color: Colors.lightBlue),
             backgroundColor: Colors.transparent,
             onPressed: (){
-              Navigator.pushNamed(context, 'cliente-modal');
+              ClienteModel client = new ClienteModel();
+              client.latitud = _ubicacionInicial.latitude.toString();
+              client.longitud = _ubicacionInicial.longitude.toString();
+              // print(client.latitud + ',' + client.longitud);
+              Navigator.pushNamed(context, 'cliente-modal', arguments: client);
             }
           ),
         ),
@@ -270,15 +274,24 @@ class _MapaPageState extends State<MapaPage> {
     return new MarkerLayerOptions(
           markers: [
             new Marker(
-              width: 80.0,
-              height: 80.0,
+              width: 40.0,
+              height: 40.0,
               point: _ubicacionInicial,
               builder: (ctx) =>
-              new Container(
-                child: Icon(
-                  Icons.person_pin_circle,
-                  color: Colors.lightBlue,
-                  size: 50.0,
+              Spin(
+                delay: Duration(seconds: 2),
+                duration: Duration(seconds:3),
+                infinite: true,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(50.0),
+                  child: Container(
+                    color: Colors.white54,
+                    child: Icon(
+                      Icons.all_out,
+                      color: Colors.blueAccent,
+                      size: 30.0,
+                    ),
+                  ),
                 ),
               ),
             ),
